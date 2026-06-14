@@ -8,7 +8,7 @@ export async function GET(_, { params }) {
 
   const { data: guest } = await supabaseAdmin
     .from('guests')
-    .select('name, allowed_guests, language')
+    .select('name, allowed_guests, language, kids_allowed, kids_count, kids_names')
     .eq('token', token)
     .single();
 

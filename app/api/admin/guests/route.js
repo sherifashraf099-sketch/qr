@@ -24,7 +24,7 @@ export async function DELETE() {
 }
 
 export async function POST(request) {
-  const { name, allowed_guests, language } = await request.json();
+  const { name, allowed_guests, language, kids_allowed, kids_count, kids_names } = await request.json();
 
   if (!name || typeof name !== 'string' || !name.trim()) {
     return Response.json({ message: 'Guest name is required.' }, { status: 400 });
@@ -32,7 +32,14 @@ export async function POST(request) {
 
   const { data, error } = await supabaseAdmin
     .from('guests')
-    .insert({ name: name.trim(), allowed_guests: allowed_guests || 1, language: language || 'ar' })
+    .insert({
+      name:          name.trim(),
+      allowed_guests: allowed_guests || 1,
+      language:      language || 'ar',
+      kids_allowed:  kids_allowed ?? false,
+      kids_count:    Math.max(0, parseInt(kids_count) || 0),
+      kids_names:    String(kids_names || '').trim(),
+    })
     .select()
     .single();
 

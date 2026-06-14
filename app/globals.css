@@ -890,3 +890,126 @@ button:disabled {
   color: #aaa;
   white-space: nowrap;
 }
+
+/* ─── Kids badge in guest rows ─── */
+
+.badge-kids {
+  padding: 0.18rem 0.55rem;
+  border-radius: 50px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.badge-kids.kids-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge-kids.kids-no {
+  background: #fce4ec;
+  color: #b71c1c;
+}
+
+/* ─── Kids toggle in add / edit form ─── */
+
+.kids-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.kids-toggle-compact {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.kids-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.kids-toggle-label input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.kids-extra-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  flex: 1;
+}
+
+.kids-names-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.4rem 0.65rem;
+  border: 1.5px solid #b0bec5;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.kids-names-input:focus {
+  border-color: #667eea;
+}
+
+/* ─── Edit row wrapper (wraps fields + kids toggle + actions) ─── */
+
+.edit-row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+/* ─── Kids section on invite page ─── */
+
+.kids-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.kids-section.kids-ok {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.kids-section.kids-denied {
+  background: #fce4ec;
+  color: #b71c1c;
+}
+
+.kids-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.kids-names-list {
+  margin: 0.35rem 0 0 1rem;
+  padding: 0;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: inherit;
+  opacity: 0.85;
+}

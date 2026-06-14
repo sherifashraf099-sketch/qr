@@ -14,6 +14,9 @@ export async function POST(request) {
       name:           String(g.name).trim(),
       allowed_guests: Math.max(1, parseInt(g.allowed_guests) || 1),
       language:       g.language === 'en' ? 'en' : 'ar',
+      kids_allowed:   ['yes','true','نعم','مسموح','allowed'].includes(String(g.kids_allowed || '').toLowerCase()),
+      kids_count:     Math.max(0, parseInt(g.kids_count) || 0),
+      kids_names:     String(g.kids_names || '').trim(),
     }));
 
   if (rows.length === 0) {

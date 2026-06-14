@@ -34,6 +34,10 @@ export async function PATCH(request, { params }) {
     update.checked_in_at = body.checked_in ? new Date().toISOString() : null;
   }
 
+  if ('kids_allowed' in body) update.kids_allowed = Boolean(body.kids_allowed);
+  if ('kids_count'   in body) update.kids_count   = Math.max(0, parseInt(body.kids_count) || 0);
+  if ('kids_names'   in body) update.kids_names   = String(body.kids_names || '').trim();
+
   if (Object.keys(update).length === 0)
     return Response.json({ message: 'Nothing to update.' }, { status: 400 });
 

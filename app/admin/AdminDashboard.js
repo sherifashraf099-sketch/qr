@@ -36,15 +36,26 @@ function parseCSV(text) {
   const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return { error: 'CSV has no data rows.' };
   const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').toLowerCase().trim());
-  const nameIdx   = headers.findIndex(h => ['name','guest name','guest','اسم','الاسم'].includes(h));
-  const guestsIdx = headers.findIndex(h => ['allowed guests','allowed_guests','guests','seats','count','number of allowed guests','عدد المدعوين','عدد'].includes(h));
-  const langIdx   = headers.findIndex(h => ['language','lang','لغة'].includes(h));
+  const nameIdx       = headers.findIndex(h => ['name','guest name','guest','اسم','الاسم'].includes(h));
+  const guestsIdx     = headers.findIndex(h => ['allowed guests','allowed_guests','guests','seats','count','number of allowed guests','عدد المدعوين','عدد'].includes(h));
+  const langIdx       = headers.findIndex(h => ['language','lang','لغة'].includes(h));
+  const kidsOkIdx     = headers.findIndex(h => ['kids allowed','kids_allowed','kids','أطفال','أطفال مسموح'].includes(h));
+  const kidsCountIdx  = headers.findIndex(h => ['kids count','kids_count','number of kids','عدد الأطفال'].includes(h));
+  const kidsNamesIdx  = headers.findIndex(h => ['kids names','kids_names','children names','أسماء الأطفال'].includes(h));
   if (nameIdx === -1) return { error: 'No "Name" column found. Make sure the first row has column headers.' };
-  const rows = lines.slice(1).map(l => parseCSVLine(l)).filter(v => v[nameIdx]?.trim()).map(v => ({
-    name:           v[nameIdx],
-    allowed_guests: guestsIdx >= 0 ? Math.max(1, parseInt(v[guestsIdx]) || 1) : 1,
-    language:       langIdx >= 0 && ['en','english','إنجليزي'].includes((v[langIdx]||'').toLowerCase()) ? 'en' : 'ar',
-  }));
+  const rows = lines.slice(1).map(l => parseCSVLine(l)).filter(v => v[nameIdx]?.trim()).map(v => {
+    const ka = kidsOkIdx >= 0
+      ? ['yes','true','نعم','مسموح','allowed','1'].includes((v[kidsOkIdx]||'').toLowerCase())
+      : false;
+    return {
+      name:           v[nameIdx],
+      allowed_guests: guestsIdx >= 0 ? Math.max(1, parseInt(v[guestsIdx]) || 1) : 1,
+      language:       langIdx >= 0 && ['en','english','إنجليزي'].includes((v[langIdx]||'').toLowerCase()) ? 'en' : 'ar',
+      kids_allowed:   ka,
+      kids_count:     ka && kidsCountIdx >= 0 ? Math.max(0, parseInt(v[kidsCountIdx]) || 0) : 0,
+      kids_names:     ka && kidsNamesIdx >= 0 ? String(v[kidsNamesIdx] || '').trim() : '',
+    };
+  });
   if (rows.length === 0) return { error: 'No valid guest rows found.' };
   return rows;
 }
@@ -75,11 +86,14 @@ async function downloadGuestsAsZip(guestList, zipName, onProgress) {
 // ── Export CSV helper ─────────────────────────────────────────────────────────
 
 function exportCSV(guests) {
-  const header = 'Name,Allowed Guests,Language,Checked In,Check-in Time';
+  const header = 'Name,Allowed Guests,Language,Kids Allowed,Kids Count,Kids Names,Checked In,Check-in Time';
   const rows = guests.map(g => [
     `"${String(g.name).replace(/"/g, '""')}"`,
     g.allowed_guests,
     g.language,
+    g.kids_allowed ? 'Yes' : 'No',
+    g.kids_count ?? 0,
+    `"${String(g.kids_names || '').replace(/"/g, '""')}"`,
     g.checked_in ? 'Yes' : 'No',
     g.checked_in_at ? new Date(g.checked_in_at).toLocaleString() : '',
   ].join(','));
@@ -100,6 +114,9 @@ export default function AdminDashboard({ guests }) {
   const [name, setName]         = useState('');
   const [seats, setSeats]       = useState(1);
   const [language, setLanguage] = useState('ar');
+  const [kidsAllowed, setKidsAllowed] = useState(false);
+  const [kidsCount, setKidsCount]     = useState(1);
+  const [kidsNames, setKidsNames]     = useState('');
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError]     = useState('');
 
@@ -113,6 +130,9 @@ export default function AdminDashboard({ guests }) {
   const [editName, setEditName]     = useState('');
   const [editGuests, setEditGuests] = useState(1);
   const [editLang, setEditLang]     = useState('ar');
+  const [editKidsAllowed, setEditKidsAllowed] = useState(false);
+  const [editKidsCount, setEditKidsCount]     = useState(1);
+  const [editKidsNames, setEditKidsNames]     = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
   // Undo check-in
@@ -192,9 +212,18 @@ export default function AdminDashboard({ guests }) {
     setAddLoading(true); setAddError('');
     const res = await fetch('/api/admin/guests', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), allowed_guests: seats, language }),
+      body: JSON.stringify({
+        name: name.trim(), allowed_guests: seats, language,
+        kids_allowed: kidsAllowed,
+        kids_count:   kidsAllowed ? kidsCount : 0,
+        kids_names:   kidsAllowed ? kidsNames : '',
+      }),
     });
-    if (res.ok) { setName(''); setSeats(1); setLanguage('ar'); router.refresh(); }
+    if (res.ok) {
+      setName(''); setSeats(1); setLanguage('ar');
+      setKidsAllowed(false); setKidsCount(1); setKidsNames('');
+      router.refresh();
+    }
     else { const d = await res.json(); setAddError(d.message || 'Failed to add guest.'); }
     setAddLoading(false);
   }
@@ -205,6 +234,9 @@ export default function AdminDashboard({ guests }) {
     setEditName(guest.name);
     setEditGuests(guest.allowed_guests);
     setEditLang(guest.language || 'ar');
+    setEditKidsAllowed(guest.kids_allowed ?? false);
+    setEditKidsCount(guest.kids_count ?? 1);
+    setEditKidsNames(guest.kids_names ?? '');
   }
 
   async function handleSaveEdit(id) {
@@ -212,7 +244,12 @@ export default function AdminDashboard({ guests }) {
     setEditLoading(true);
     await fetch(`/api/admin/guests/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: editName, allowed_guests: editGuests, language: editLang }),
+      body: JSON.stringify({
+        name: editName, allowed_guests: editGuests, language: editLang,
+        kids_allowed: editKidsAllowed,
+        kids_count:   editKidsAllowed ? editKidsCount : 0,
+        kids_names:   editKidsAllowed ? editKidsNames : '',
+      }),
     });
     setEditingId(null);
     setEditLoading(false);
@@ -354,7 +391,7 @@ export default function AdminDashboard({ guests }) {
               value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="field seats-field">
-            <label>Allowed Guests</label>
+            <label>Guests</label>
             <input type="number" min="1" max="20"
               value={seats} onChange={e => setSeats(Number(e.target.value))} />
           </div>
@@ -369,6 +406,25 @@ export default function AdminDashboard({ guests }) {
             {addLoading ? 'Adding…' : 'Add Guest'}
           </button>
         </form>
+
+        {/* Kids toggle */}
+        <div className="kids-toggle-row">
+          <label className="kids-toggle-label">
+            <input type="checkbox" checked={kidsAllowed}
+              onChange={e => setKidsAllowed(e.target.checked)} />
+            Kids allowed
+          </label>
+          {kidsAllowed && (
+            <div className="kids-extra-fields">
+              <input className="edit-input-num" type="number" min="1" max="20"
+                value={kidsCount} onChange={e => setKidsCount(Number(e.target.value))}
+                placeholder="Count" />
+              <input className="kids-names-input" type="text"
+                value={kidsNames} onChange={e => setKidsNames(e.target.value)}
+                placeholder="Names (comma-separated): Ahmed, Sara, …" />
+            </div>
+          )}
+        </div>
         {addError && <p className="error-text" style={{ marginTop: '0.5rem' }}>{addError}</p>}
       </div>
 
@@ -378,6 +434,7 @@ export default function AdminDashboard({ guests }) {
         <p className="csv-hint">
           In Google Sheets: <strong>File → Download → CSV</strong>.
           Required columns: <code>Name</code>, <code>Allowed Guests</code>, <code>Language</code> (ar / en).
+          Optional: <code>Kids Allowed</code> (yes / no), <code>Kids Count</code>, <code>Kids Names</code> (comma-separated).
         </p>
         <div className="csv-row">
           <label className="btn-file">
@@ -489,7 +546,7 @@ export default function AdminDashboard({ guests }) {
 
                 {editingId === guest.id ? (
                   /* ── Edit mode ── */
-                  <>
+                  <div className="edit-row-wrap">
                     <div className="edit-fields">
                       <input className="edit-input-name" value={editName}
                         onChange={e => setEditName(e.target.value)}
@@ -501,6 +558,22 @@ export default function AdminDashboard({ guests }) {
                         <option value="en">EN</option>
                       </select>
                     </div>
+                    <div className="kids-toggle-row kids-toggle-compact">
+                      <label className="kids-toggle-label">
+                        <input type="checkbox" checked={editKidsAllowed}
+                          onChange={e => setEditKidsAllowed(e.target.checked)} />
+                        Kids
+                      </label>
+                      {editKidsAllowed && (
+                        <div className="kids-extra-fields">
+                          <input className="edit-input-num" type="number" min="1" max="20"
+                            value={editKidsCount} onChange={e => setEditKidsCount(Number(e.target.value))} />
+                          <input className="kids-names-input" type="text"
+                            value={editKidsNames} onChange={e => setEditKidsNames(e.target.value)}
+                            placeholder="Names (comma-separated)" />
+                        </div>
+                      )}
+                    </div>
                     <div className="edit-actions">
                       <button className="btn-save"
                         onClick={() => handleSaveEdit(guest.id)} disabled={editLoading}>
@@ -510,7 +583,7 @@ export default function AdminDashboard({ guests }) {
                         Cancel
                       </button>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   /* ── Normal mode ── */
                   <>
@@ -546,6 +619,10 @@ export default function AdminDashboard({ guests }) {
                         title="Click to switch QR card language">
                         {togglingId === guest.id ? '…' : guest.language === 'en' ? 'EN' : 'AR'}
                       </button>
+                      <span className={`badge-kids ${guest.kids_allowed ? 'kids-ok' : 'kids-no'}`}
+                        title={guest.kids_allowed ? `${guest.kids_count} kids${guest.kids_names ? ': ' + guest.kids_names : ''}` : 'Kids not allowed'}>
+                        {guest.kids_allowed ? `👶 ${guest.kids_count}` : '🚫 Kids'}
+                      </span>
                     </div>
 
                     <div className="guest-row-actions">
