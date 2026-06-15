@@ -6,24 +6,40 @@ export const dynamic = 'force-dynamic';
 export default async function InvitePage({ params }) {
   const { token } = await params;
 
-  const { data: guest, error } = await supabaseAdmin
-    .from('guests')
-    .select('*')
-    .eq('token', token)
-    .single();
+  let guest, dbError;
+  try {
+    const result = await supabaseAdmin
+      .from('guests')
+      .select('*')
+      .eq('token', token)
+      .single();
+    guest = result.data;
+    dbError = result.error;
+  } catch (err) {
+    dbError = err;
+  }
 
-  if (error || !guest) {
+  if (dbError || !guest) {
     return (
       <div className="container rtl">
         <div className="card invalid-card">
           <h1>دعوة غير صالحة</h1>
           <p>رمز QR هذا غير صالح أو تم حذفه.</p>
+          {process.env.NODE_ENV !== 'production' && dbError && (
+            <pre style={{ fontSize: 11, color: '#888', marginTop: 8, textAlign: 'left', direction: 'ltr' }}>
+              {String(dbError?.message ?? dbError)}
+            </pre>
+          )}
         </div>
       </div>
     );
   }
 
-  const kidsNames = (guest.kids_names || '').split(',').map(s => s.trim()).filter(Boolean);
+  // kids_names may be a comma-separated string or a JS array depending on the DB column type
+  const rawKidsNames = guest.kids_names;
+  const kidsNames = Array.isArray(rawKidsNames)
+    ? rawKidsNames.map(s => String(s).trim()).filter(Boolean)
+    : (rawKidsNames || '').split(',').map(s => s.trim()).filter(Boolean);
 
   function KidsSection() {
     if (!guest.kids_allowed) {
@@ -51,11 +67,17 @@ export default async function InvitePage({ params }) {
     );
   }
 
+  function fmtTime(iso) {
+    try {
+      return new Date(iso).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+      return new Date(iso).toLocaleString();
+    }
+  }
+
   // Guest already checked in — show warning, do nothing
   if (guest.checked_in) {
-    const entryTime = new Date(guest.checked_in_at).toLocaleString('ar-EG', {
-      dateStyle: 'medium', timeStyle: 'short',
-    });
+    const entryTime = fmtTime(guest.checked_in_at);
 
     return (
       <div className="container rtl">
@@ -89,9 +111,7 @@ export default async function InvitePage({ params }) {
     .eq('id', guest.id)
     .eq('checked_in', false);
 
-  const entryTime = new Date(checkedInAt).toLocaleString('ar-EG', {
-    dateStyle: 'medium', timeStyle: 'short',
-  });
+  const entryTime = fmtTime(checkedInAt);
 
   return (
     <div className="container rtl">
