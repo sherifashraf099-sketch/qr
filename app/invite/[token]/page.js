@@ -30,7 +30,7 @@ export default async function InvitePage({ params }) {
       return (
         <div className="kids-section kids-denied">
           <span className="kids-icon">🚫</span>
-          <span>لا يُسمح بدخول الأطفال</span>
+          <span>لا يُسمح بدخول الأطفال تحت سن 15 سنة</span>
         </div>
       );
     }
