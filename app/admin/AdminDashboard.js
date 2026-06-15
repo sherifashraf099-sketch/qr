@@ -65,16 +65,23 @@ function parseCSV(text) {
 async function downloadGuestsAsZip(guestList, zipName, onProgress) {
   const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
+  let failed = 0;
   for (let i = 0; i < guestList.length; i++) {
     const g = guestList[i];
     try {
       const res = await fetch(`/api/qr/${g.token}`);
       if (res.ok) {
-        const safe = (g.name || g.token).replace(/[/\\:*?"<>|]/g, '_');
-        zip.file(`${safe}.png`, await res.arrayBuffer());
+        const safeName = (g.name || g.token).replace(/[/\\:*?"<>|]/g, '_');
+        // Include token prefix to guarantee unique filenames even with duplicate names
+        zip.file(`${safeName}_${g.token.slice(0, 6)}.png`, await res.arrayBuffer());
+      } else {
+        failed++;
       }
-    } catch { /* skip */ }
+    } catch { failed++; }
     onProgress(Math.round((i + 1) / guestList.length * 100));
+  }
+  if (failed > 0) {
+    alert(`Warning: ${failed} QR code(s) failed to generate and were skipped.`);
   }
   const blob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(blob);
