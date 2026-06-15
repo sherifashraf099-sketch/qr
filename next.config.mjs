@@ -3,8 +3,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // sharp is a native module — must not be bundled by Next.js webpack
   serverExternalPackages: ['sharp', 'satori'],
+  // Ensure WASM files (satori's HarfBuzz for Arabic shaping) are included in Vercel bundles
+  outputFileTracingIncludes: {
+    '/api/qr/[token]': ['./node_modules/**/*.wasm', './node_modules/satori/**/*'],
+  },
 };
 
 export default nextConfig;
