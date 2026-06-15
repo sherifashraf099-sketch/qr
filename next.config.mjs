@@ -4,7 +4,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   // sharp is a native module — must not be bundled by Next.js webpack
-  serverExternalPackages: ['sharp'],
+  serverExternalPackages: ['sharp', 'satori'],
 };
 
 export default nextConfig;

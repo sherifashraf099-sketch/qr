@@ -14,12 +14,16 @@
     "@types/react-dom": "^19.0.0"
   },
   "dependencies": {
+    "@fontsource/cairo": "^5.2.7",
+    "@fontsource/noto-sans": "^5.2.10",
+    "@fontsource/noto-sans-arabic": "^5.2.10",
     "@supabase/supabase-js": "^2.49.0",
     "jszip": "^3.10.1",
     "next": "^15.0.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "satori": "^0.26.0",
     "sharp": "^0.34.0"
   }
 }
